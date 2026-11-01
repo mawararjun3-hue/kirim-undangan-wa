@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kirim Undangan WhatsApp & Instagram</title>
+<style>
+:root{--bg:#fbf5f6;--card:#fff;--tx:#3a2a2e;--mut:#8a7378;--ac:#b23a5b;--ac2:#f3dde3;--ok:#2e8b57;--bd:#e8d5da}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1416;--card:#271b1e;--tx:#f3e6e9;--mut:#a89196;--ac:#e0708f;--ac2:#3a2429;--ok:#5fc08a;--bd:#43303a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,sans-serif;padding:16px}
+.wrap{max-width:820px;margin:auto}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 16px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+label{display:block;font-weight:600;margin-bottom:6px}
+.hint{font-weight:400;color:var(--mut);font-size:12px}
+textarea,input{width:100%;border:1px solid var(--bd);border-radius:8px;padding:10px;background:var(--bg);color:var(--tx);font:inherit}
+textarea{min-height:120px;resize:vertical}
+#tpl{min-height:330px}
+button{border:0;border-radius:8px;padding:9px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--ac);color:#fff}
+button.sec{background:var(--ac2);color:var(--ac)}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.stat{margin-left:auto;color:var(--mut);font-size:13px}
+.item{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--bd)}
+.item:first-child{border-top:0}
+.info{flex:1;min-width:0}
+.nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph{font-size:12px;color:var(--mut)}
+.ph.bad{color:#d64545}
+.done .nm{color:var(--mut);text-decoration:line-through}
+.badge{font-size:12px;color:var(--ok);font-weight:600}
+.prev{white-space:pre-wrap;background:var(--bg);border:1px dashed var(--bd);border-radius:8px;padding:10px;font-size:14px;max-height:300px;overflow:auto}
+.note{font-size:12px;color:var(--mut);margin-top:8px}
+button.ig{background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);color:#fff}
+.item{flex-wrap:wrap}
+.info{min-width:150px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:13px;max-width:90%;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Kirim Undangan WhatsApp & Instagram</h1>
+  <p class="sub">Tempel daftar tamu, nama otomatis masuk ke pesan dan link undangan. Tinggal klik Kirim per tamu.</p>
+
+  <div class="card">
+    <label for="tpl">Format pesan <span class="hint">· [Nama Tamu] akan diganti otomatis</span></label>
+    <textarea id="tpl">Assalamualaikum Warahmatullahi Wabarakatuh
+
+Kepada Yth.
+Bapak/Ibu/Saudara/i [Nama Tamu]
+
+Dengan memohon rahmat dan ridha Allah SWT, kami bermaksud mengundang Bapak/Ibu/Saudara/i untuk menghadiri acara pernikahan kami:
+
+Mawarda Sholeha &amp; Arjun Nur Alfantori
+Sabtu, 7 November 2026
+
+Informasi lengkap mengenai waktu, lokasi, dan detail acara dapat dilihat melalui tautan undangan berikut:
+https://weddingmawararjun.my.id/
+
+Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu.
+
+Wassalamualaikum Warahmatullahi Wabarakatuh
+
+Hormat kami,
+Mawar &amp; Arjun</textarea>
+    <div style="margin-top:10px">
+      <label for="base">Link undangan <span class="hint">· otomatis ditambah ?to=NamaTamu</span></label>
+      <input id="base" value="https://weddingmawararjun.my.id/">
+    </div>
+  </div>
+
+  <div class="card">
+    <label for="list">Daftar tamu <span class="hint">· satu tamu per baris: Nama, Nomor WA, @instagram</span></label>
+    <textarea id="list" placeholder="Budi Santoso, 081234567890, @budi.santoso&#10;Siti Aminah, 0857-1111-2222&#10;Dina Pratiwi, @dinapratiwi&#10;Keluarga Pak Ahmad, +62 812 3333 4444"></textarea>
+    <div class="note">Bisa juga tempel langsung dari Excel/Sheets (kolom Nama, Nomor, lalu Instagram). Nomor 08xx otomatis jadi 628xx. Username Instagram harus diawali @ (atau tempel link instagram.com/username). Tamu tanpa nomor tapi punya IG hanya mendapat tombol Kirim IG. Tamu tanpa keduanya akan membuka pilihan kontak WhatsApp.</div>
+    <div class="row">
+      <button id="btnLoad">Buat Daftar</button>
+      <button class="sec" id="btnReset">Reset status terkirim</button>
+    </div>
+  </div>
+
+  <div class="card" id="prevCard" hidden>
+    <label>Pratinjau pesan <span class="hint" id="prevFor"></span></label>
+    <div class="prev" id="prev"></div>
+  </div>
+
+  <div class="card" id="listCard" hidden>
+    <div class="row" style="margin:0 0 6px">
+      <button id="btnNext">WA berikutnya</button>
+      <button class="ig" id="btnNextIG">IG berikutnya</button>
+      <span class="stat" id="stat"></span>
+    </div>
+    <div id="items"></div>
+    <div class="note">WhatsApp tidak mengizinkan kirim massal otomatis. Tiap klik membuka chat dengan pesan sudah terisi, lalu kamu tekan tombol kirim di WhatsApp. Kalau browser memblokir pop-up, izinkan untuk halaman ini.<br>Instagram tidak bisa mengisi pesan otomatis: tombol Kirim IG menyalin pesan ke clipboard dan membuka DM tamu, lalu tempel (paste) dan kirim. Akun IG kamu harus sudah login di browser/aplikasi.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const KEY = "wa-undangan-v1";
+let guests = [], sent = {};
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || "{}");
+    if (d.tpl) $("#tpl").value = d.tpl;
+    if (d.base) $("#base").value = d.base;
+    if (d.list) $("#list").value = d.list;
+    sent = d.sent || {};
+  } catch (e) {}
+}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      tpl: $("#tpl").value, base: $("#base").value, list: $("#list").value, sent
+    }));
+  } catch (e) {}
+}
+
+function normPhone(raw) {
+  let d = raw.replace(/[^\d+]/g, "");
+  if (!d) return "";
+  d = d.replace(/^\+/, "");
+  if (d.startsWith("0")) d = "62" + d.slice(1);
+  else if (d.startsWith("8")) d = "62" + d;
+  return d;
+}
+
+function parseList(text) {
+  const out = [];
+  text.split(/\r?\n/).forEach(line => {
+    line = line.trim();
+    if (!line) return;
+    let name = line, phone = "", ig = "";
+    const im = line.match(/(?:https?:\/\/)?(?:www\.)?instagram\.com\/@?([A-Za-z0-9._]+)\/?|@([A-Za-z0-9._]+)/i);
+    if (im) {
+      ig = (im[1] || im[2]).replace(/\.+$/, "");
+      line = line.replace(im[0], " ");
+    }
+    name = line;
+    const m = line.match(/(\+?\d[\d\s\-().]{7,}\d)\s*$/) || line.match(/(\+?\d[\d\s\-().]{7,}\d)/);
+    if (m) {
+      phone = normPhone(m[1]);
+      name = line.replace(m[1], "");
+    }
+    name = name.replace(/[\t,;|]+/g, " ").replace(/\s+-\s*$/, "").replace(/\s+/g, " ").trim();
+    if (!name && ig) name = ig;
+    if (!name) return;
+    out.push({ name, phone, ig, valid: !phone || (phone.length >= 10 && phone.length <= 15) });
+  });
+  return out;
+}
+
+function buildMsg(name) {
+  const base = $("#base").value.trim();
+  let msg = $("#tpl").value.replace(/\[\s*Nama Tamu\s*\]/gi, name);
+  if (base) {
+    const link = base + (base.includes("?") ? "&" : "?") + "to=" + encodeURIComponent(name);
+    msg = msg.split(base).join(link);
+  }
+  return msg;
+}
+
+function waUrl(g) {
+  const t = encodeURIComponent(buildMsg(g.name));
+  return g.phone ? `https://wa.me/${g.phone}?text=${t}` : `https://wa.me/?text=${t}`;
+}
+
+function key(g) { return g.name + "|" + g.phone; }
+
+function canWA(g) { return g.valid && (!!g.phone || !g.ig); }
+
+function isAllDone(g) {
+  return (!canWA(g) || !!sent[key(g)]) && (!g.ig || !!sent["ig|" + key(g)]);
+}
+
+function render() {
+  const box = $("#items");
+  box.innerHTML = "";
+  guests.forEach((g, i) => {
+    const k = key(g), done = !!sent[k], doneIG = !!sent["ig|" + k];
+    const el = document.createElement("div");
+    el.className = "item" + (isAllDone(g) ? " done" : "");
+    const phTxt = (g.phone ? (g.valid ? "+" + g.phone : "Nomor tidak valid: " + g.phone) : (g.ig ? "Tanpa nomor WA" : "Tanpa nomor (pilih kontak manual)")) + (g.ig ? " · IG @" + g.ig : "");
+    el.innerHTML = `<div class="info"><div class="nm"></div><div class="ph${g.valid ? "" : " bad"}"></div></div>`;
+    el.querySelector(".nm").textContent = g.name;
+    el.querySelector(".ph").textContent = phTxt;
+    const tags = [];
+    if (done && canWA(g)) tags.push("WA ✓");
+    if (doneIG && g.ig) tags.push("IG ✓");
+    if (tags.length) {
+      const b = document.createElement("span");
+      b.className = "badge"; b.textContent = tags.join(" · ");
+      el.appendChild(b);
+    }
+    const send = document.createElement("button");
+    send.textContent = done ? "WA lagi" : "Kirim WA";
+    if (done) send.className = "sec";
+    send.disabled = !g.valid;
+    send.hidden = !canWA(g);
+    send.onclick = () => openGuest(i);
+    const igBtn = document.createElement("button");
+    igBtn.textContent = doneIG ? "IG lagi" : "Kirim IG";
+    igBtn.className = doneIG ? "sec" : "ig";
+    igBtn.onclick = () => openIG(i);
+    const copy = document.createElement("button");
+    copy.className = "sec"; copy.textContent = "Salin";
+    copy.onclick = () => {
+      navigator.clipboard.writeText(buildMsg(g.name)).then(() => {
+        copy.textContent = "Tersalin"; setTimeout(() => copy.textContent = "Salin", 1200);
+      }).catch(() => {});
+    };
+    el.appendChild(send);
+    if (g.ig) el.appendChild(igBtn);
+    el.appendChild(copy);
+    box.appendChild(el);
+  });
+  const waList = guests.filter(canWA), igList = guests.filter(g => g.ig);
+  const nWA = waList.filter(g => sent[key(g)]).length;
+  const nIG = igList.filter(g => sent["ig|" + key(g)]).length;
+  $("#stat").textContent = `WA ${nWA}/${waList.length} · IG ${nIG}/${igList.length}`;
+  $("#btnNext").disabled = !waList.some(g => g.valid && !sent[key(g)]);
+  $("#btnNextIG").disabled = !igList.some(g => !sent["ig|" + key(g)]);
+  $("#btnNextIG").hidden = igList.length === 0;
+}
+
+function openGuest(i) {
+  const g = guests[i];
+  window.open(waUrl(g), "_blank");
+  sent[key(g)] = true;
+  save(); render();
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 4000);
+}
+
+function openIG(i) {
+  const g = guests[i];
+  if (!g.ig) return;
+  const ok = () => toast("Pesan tersalin. Di Instagram, tempel (paste) lalu kirim.");
+  const fail = () => toast("Gagal menyalin otomatis. Tekan tombol Salin dulu, lalu tempel di DM.");
+  try { navigator.clipboard.writeText(buildMsg(g.name)).then(ok, fail); } catch (e) { fail(); }
+  window.open("https://ig.me/m/" + encodeURIComponent(g.ig), "_blank");
+  sent["ig|" + key(g)] = true;
+  save(); render();
+}
+
+function build() {
+  guests = parseList($("#list").value);
+  $("#listCard").hidden = guests.length === 0;
+  $("#prevCard").hidden = guests.length === 0;
+  if (guests.length) {
+    $("#prevFor").textContent = "· contoh untuk " + guests[0].name;
+    $("#prev").textContent = buildMsg(guests[0].name);
+  }
+  save(); render();
+}
+
+$("#btnLoad").onclick = build;
+$("#btnNext").onclick = () => {
+  const i = guests.findIndex(g => canWA(g) && !sent[key(g)]);
+  if (i >= 0) openGuest(i);
+};
+$("#btnNextIG").onclick = () => {
+  const i = guests.findIndex(g => g.ig && !sent["ig|" + key(g)]);
+  if (i >= 0) openIG(i);
+};
+$("#btnReset").onclick = () => {
+  if (confirm("Hapus semua status terkirim?")) { sent = {}; save(); render(); }
+};
+["#tpl", "#base"].forEach(s => $(s).addEventListener("input", () => {
+  if (guests.length) { $("#prev").textContent = buildMsg(guests[0].name); }
+  save();
+}));
+$("#list").addEventListener("input", save);
+
+load();
+if ($("#list").value.trim()) build();
+</script>
+</body>
+</html>
